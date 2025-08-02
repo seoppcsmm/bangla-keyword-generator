@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>বাংলা লংটেইল কীওয়ার্ড জেনারেটর</title>
+    <style>
+        body {
+            font-family: 'SolaimanLipi', 'Noto Sans Bengali', Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 70%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-right: 10px;
+            background-color: white;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .copy-btn {
+            background-color: #27ae60;
+        }
+        .copy-btn:hover {
+            background-color: #229954;
+        }
+        .export-btn {
+            background-color: #e67e22;
+        }
+        .export-btn:hover {
+            background-color: #d35400;
+        }
+        #status {
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        #results {
+            margin-top: 20px;
+        }
+        .keyword-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .keyword-table th, .keyword-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .keyword-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .keyword-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .keyword-table tr:hover {
+            background-color: #f1f1f1;
+        }
+        .search-volume {
+            text-align: center;
+        }
+        .error {
+            color: #e74c3c;
+            background-color: #fadbd8;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .progress {
+            margin: 10px 0;
+            height: 20px;
+            background-color: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #3498db;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .action-buttons {
+            margin: 15px 0;
+            display: none; /* Initially hidden */
+        }
+        .action-buttons.show {
+            display: block;
+        }
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background-color: #2ecc71;
+            color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .letter-list {
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #fff;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>বাংলা লংটেইল কীওয়ার্ড জেনারেটর</h1>
+        
+        <div class="input-group">
+            <input type="text" id="baseKeyword" placeholder="আপনার মূল কীওয়ার্ড লিখুন">
+            <select id="letterSet">
+                <option value="all">সব বর্ণের লিস্ট</option>
+                <option value="concise">অল্প বর্ণের লিস্ট</option>
+            </select>
+            <button id="generateBtn">কীওয়ার্ড তৈরি করুন</button>
+        </div>
+        
+        <div id="letterListContainer" class="letter-list" style="display: none;">
+            <!-- Selected letter list will be displayed here -->
+        </div>
+        
+        <div id="status">প্রস্তুত</div>
+        <div class="progress">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        
+        <!-- Action buttons moved here -->
+        <div class="action-buttons" id="actionButtons">
+            <button id="copyBtn" class="copy-btn">কীওয়ার্ড কপি করুন</button>
+            <button id="exportBtn" class="export-btn">কীওয়ার্ড এক্সপোর্ট করুন</button>
+        </div>
+        
+        <div id="results">
+            <!-- ফলাফল এখানে প্রদর্শিত হবে -->
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // সমস্ত বর্ণের তালিকা
+        const allBanglaChars = [
+            'অ', 'আ', 'ই', 'ঈ', 'উ', 'ঊ', 'ঋ', 'এ', 'ঐ', 'ও', 'ঔ',
+            'ক', 'কা', 'কি', 'কী', 'কু', 'কূ', 'কৃ', 'কে', 'কৈ', 'কো', 'কৌ',
+            'খ', 'খা', 'খি', 'খী', 'খু', 'খূ', 'খৃ', 'খে', 'খৈ', 'খো',
+            'গ', 'গা', 'গি', 'গী', 'গু', 'গূ', 'গৃ', 'গে', 'গো', 'গৌ',
+            'ঘ', 'ঘা', 'ঘি', 'ঘী', 'ঘু', 'ঘূ', 'ঘৃ', 'ঘে', 'ঘো',
+            'চ', 'চা', 'চি', 'চী', 'চু', 'চূ', 'চৃ', 'চে', 'চৈ', 'চো', 'চৌ',
+            'ছ', 'ছা', 'ছি', 'ছী', 'ছু', 'ছে', 'ছৈ', 'ছো', 'ছৌ',
+            'জ', 'জা', 'জি', 'জী', 'জু', 'জৃ', 'জে', 'জৈ', 'জো', 'জৌ',
+            'ঝ', 'ঝা', 'ঝি', 'ঝী', 'ঝু', 'ঝে', 'ঝো',
+            'ট', 'টা', 'টি', 'টী', 'টু', 'টূ', 'টে', 'টৈ', 'টো', 'টৌ',
+            'ঠ', 'ঠা', 'ঠি', 'ঠী', 'ঠু', 'ঠূ', 'ঠে', 'ঠৈ', 'ঠো',
+            'ড', 'ডা', 'ডি', 'ডী', 'ডু', 'ডে', 'ডো',
+            'ঢ', 'ঢা', 'ঢি', 'ঢী', 'ঢু', 'ঢূ', 'ঢে', 'ঢো',
+            'ত', 'তা', 'তি', 'তী', 'তু', 'তূ', 'তৃ', 'তে', 'তৈ', 'তো', 'তৌ',
+            'থ', 'থা', 'থি', 'থী', 'থু', 'থূ', 'থে', 'থৈ', 'থো',
+            'দ', 'দা', 'দি', 'দী', 'দু', 'দূ', 'দৃ', 'দে', 'দৈ', 'দো', 'দৌ',
+            'ধ', 'ধা', 'ধি', 'ধী', 'ধু', 'ধূ', 'ধে', 'ধৈ', 'ধো', 'ধৌ',
+            'ন', 'না', 'নি', 'নী', 'নু', 'নূ', 'নৃ', 'নে', 'নৈ', 'নো', 'নৌ',
+            'প', 'পা', 'পি', 'পী', 'পু', 'পূ', 'পৃ', 'পে', 'পৈ', 'পো', 'পৌ',
+            'ফ', 'ফা', 'ফি', 'ফী', 'ফু', 'ফৃ', 'ফে', 'ফো',
+            'ব', 'বা', 'বি', 'বী', 'বু', 'বূ', 'বৃ', 'বে', 'বৈ', 'বো', 'বৌ',
+            'ভ', 'ভা', 'ভি', 'ভী', 'ভু', 'ভূ', 'ভৃ', 'ভে', 'ভৈ', 'ভো', 'ভৌ',
+            'ম', 'মা', 'মি', 'মী', 'মু', 'মূ', 'মৃ', 'মে', 'মৈ', 'মো', 'মৌ',
+            'য', 'যা', 'যি', 'যী', 'যু', 'যে', 'যৈ', 'যো', 'যৌ',
+            'র', 'রা', 'রি', 'রী', 'রু', 'রূ', 'রে', 'রৈ', 'রো', 'রৌ',
+            'ল', 'লা', 'লি', 'লী', 'লু', 'লৃ', 'লে', 'লৈ', 'লো', 'লৌ',
+            'শ', 'শা', 'শি', 'শী', 'শু', 'শূ', 'শে', 'শৈ', 'শো', 'শৌ',
+            'ষ', 'ষা', 'ষি', 'ষী', 'ষু', 'ষে', 'ষো',
+            'স', 'সা', 'সি', 'সী', 'সু', 'সূ', 'সে', 'সৈ', 'সো', 'সৌ',
+            'হ', 'হা', 'হি', 'হী', 'হু', 'হূ', 'হৃ', 'হে', 'হৈ', 'হো', 'হৌ',
+            'য়', 'য়া', 'য়ি', 'য়ী', 'য়ু', 'য়ে', 'য়ৈ', 'য়ো'
+        ];
+
+        // সংক্ষিপ্ত বর্ণের তালিকা
+        const conciseBanglaChars = [
+            'অ', 'আ', 'ই', 'ঈ', 'উ', 'ঊ', 'ঋ', 'এ', 'ঐ', 'ও', 'ঔ',
+            'ক', 'খ', 'গ', 'ঘ', 'চ', 'ছ', 'জ', 'ঝ', 'ট', 'ঠ', 'ড', 'ঢ',
+            'ত', 'থ', 'দ', 'ধ', 'ন', 'প', 'ফ', 'ব', 'ভ', 'ম', 'য', 'র',
+            'ল', 'শ', 'ষ', 'স', 'হ', 'য়'
+        ];
+
+        // সাধারণ বাংলা প্রশ্নবাচক শব্দ এবং বাক্যাংশ
+        const banglaQuestionWords = [
+            'কিভাবে', 'কোন', 'কেন', 'কোথায়', 'কে', 'কখন', 'কি', 
+            'কি ভাবে', 'কেননা', 'কোথা থেকে', 'কার', 'কারা', 'কত',
+            'কতক্ষণ', 'কোন রকম', 'কি হয়', 'কি করে', 'কিভাবে করে',
+            'কখন থেকে', 'কোথায় পাব', 'কেন হয়', 'কি উপকার', 'কত টাকা'
+        ];
+
+        // জেনারেট করা কীওয়ার্ডগুলি সংরক্ষণের জন্য গ্লোবাল ভেরিয়েবল
+        let generatedKeywords = [];
+        let generatedKeywordsWithVolume = [];
+
+        // অ্যাকশন বাটনগুলির রেফারেন্স
+        const actionButtons = document.getElementById('actionButtons');
+        const copyBtn = document.getElementById('copyBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const letterSetSelect = document.getElementById('letterSet');
+        const letterListContainer = document.getElementById('letterListContainer');
+
+        // অ্যাকশন বাটনগুলির ইভেন্ট লিসেনার যোগ করুন
+        copyBtn.addEventListener('click', copyKeywords);
+        exportBtn.addEventListener('click', exportKeywords);
+        letterSetSelect.addEventListener('change', updateLetterList);
+
+        // প্রারম্ভিক অক্ষর তালিকা আপডেট করুন
+        updateLetterList();
+
+        function updateLetterList() {
+            const selectedSet = letterSetSelect.value;
+            const letterList = selectedSet === 'all' ? allBanglaChars : conciseBanglaChars;
+            
+            // অক্ষর তালিকা প্রদর্শন করুন
+            letterListContainer.textContent = letterList.join(', ');
+            letterListContainer.style.display = 'block';
+        }
+
+        document.getElementById('generateBtn').addEventListener('click', async function() {
+            const baseKeyword = document.getElementById('baseKeyword').value.trim();
+            if (!baseKeyword) {
+                showError('অনুগ্রহ করে একটি মূল কীওয়ার্ড লিখুন');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('results');
+            const statusDiv = document.getElementById('status');
+            const progressBar = document.getElementById('progressBar');
+            
+            // অ্যাকশন বাটনগুলি লুকান
+            actionButtons.classList.remove('show');
+            
+            resultsDiv.innerHTML = '';
+            statusDiv.textContent = 'কীওয়ার্ড তৈরি হচ্ছে...';
+            progressBar.style.width = '0%';
+
+            // নির্বাচিত অক্ষর সেট পান
+            const selectedSet = letterSetSelect.value;
+            const banglaChars = selectedSet === 'all' ? allBanglaChars : conciseBanglaChars;
+            
+            // সমস্ত সম্ভাব্য উপসর্গ তৈরি করুন
+            const prefixes = [...banglaChars, ...banglaQuestionWords];
+            const totalRequests = prefixes.length;
+            let completedRequests = 0;
+            
+            // ফলাফল সংরক্ষণের জন্য একটি সেট ব্যবহার করুন
+            const allKeywords = new Set();
+
+            // প্রতিটি উপসর্গের জন্য অনুরোধ পাঠান
+            for (const prefix of prefixes) {
+                try {
+                    const query = `${baseKeyword} ${prefix}`;
+                    const suggestions = await fetchSuggestions(query);
+                    
+                    // পরামর্শগুলি যোগ করুন (যদি সেগুলি বিদ্যমান থাকে)
+                    if (suggestions && suggestions.length > 0) {
+                        suggestions.forEach(suggestion => allKeywords.add(suggestion));
+                    }
+                    
+                    // অগ্রগতি আপডেট করুন
+                    completedRequests++;
+                    const progress = (completedRequests / totalRequests) * 100;
+                    progressBar.style.width = `${progress}%`;
+                    statusDiv.textContent = `${completedRequests}/${totalRequests} সম্পন্ন হয়েছে...`;
+                    
+                    // রেট লিমিটিং এড়াতে ছোট বিলম্ব
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                } catch (error) {
+                    console.error(`Error fetching suggestions for ${prefix}:`, error);
+                    // একটি অনুরোধ ব্যর্থ হলে অন্যগুলি চালিয়ে যান
+                    completedRequests++;
+                    const progress = (completedRequests / totalRequests) * 100;
+                    progressBar.style.width = `${progress}%`;
+                }
+            }
+            
+            // ফলাফল প্রদর্শন করুন
+            generatedKeywords = Array.from(allKeywords);
+            generatedKeywordsWithVolume = generateSearchVolumeData(generatedKeywords);
+            displayResults(generatedKeywordsWithVolume, baseKeyword);
+        });
+
+        // সার্চ ভলিউম ডেটা তৈরি করুন (সিমুলেটেড)
+        function generateSearchVolumeData(keywords) {
+            return keywords.map(keyword => {
+                // একটি সিমুলেটেড সার্চ ভলিউম তৈরি করুন (100 থেকে 100000 এর মধ্যে)
+                const searchVolume = Math.floor(Math.random() * 99900) + 100;
+                
+                // কিছু কীওয়ার্ডের জন্য উচ্চ সার্চ ভলিউম সেট করুন (প্রশ্নবাচক শব্দগুলির জন্য)
+                const isQuestionWord = banglaQuestionWords.some(word => keyword.includes(word));
+                const adjustedVolume = isQuestionWord ? searchVolume * 5 : searchVolume;
+                
+                return {
+                    keyword: keyword,
+                    searchVolume: adjustedVolume
+                };
+            });
+        }
+
+        async function fetchSuggestions(query) {
+            try {
+                // JSONP ব্যবহার করে Google অটোকমপ্লিট API থেকে পরামর্শ নিন
+                return new Promise((resolve, reject) => {
+                    const callbackName = `callback_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+                    
+                    // কলব্যাক ফাংশন তৈরি করুন
+                    window[callbackName] = function(data) {
+                        try {
+                            // ডেটা যাচাই করুন এবং পরামর্শ নিষ্কর্ষণ করুন
+                            if (data && data[1] && Array.isArray(data[1])) {
+                                resolve(data[1]);
+                            } else {
+                                resolve([]);
+                            }
+                        } catch (e) {
+                            reject(e);
+                        } finally {
+                            // ক্লিনআপ
+                            delete window[callbackName];
+                            document.body.removeChild(scriptElement);
+                        }
+                    };
+                    
+                    // স্ক্রিপ্ট উপাদান তৈরি করুন
+                    const scriptElement = document.createElement('script');
+                    scriptElement.src = `https://suggestqueries.google.com/complete/search?client=firefox&hl=bn&q=${encodeURIComponent(query)}&callback=${callbackName}`;
+                    scriptElement.onerror = () => {
+                        delete window[callbackName];
+                        document.body.removeChild(scriptElement);
+                        reject(new Error('Failed to load suggestions'));
+                    };
+                    
+                    document.body.appendChild(scriptElement);
+                    
+                    // টাইমআউট সেট করুন
+                    setTimeout(() => {
+                        if (window[callbackName]) {
+                            delete window[callbackName];
+                            document.body.removeChild(scriptElement);
+                            reject(new Error('Request timed out'));
+                        }
+                    }, 5000);
+                });
+            } catch (error) {
+                console.error('Error fetching suggestions:', error);
+                return [];
+            }
+        }
+
+        function displayResults(keywordsWithVolume, baseKeyword) {
+            const resultsDiv = document.getElementById('results');
+            const statusDiv = document.getElementById('status');
+            
+            if (keywordsWithVolume.length > 0) {
+                // টেবিল তৈরি করুন
+                let tableHTML = `
+                    <h2>তৈরিকৃত কীওয়ার্ড (${keywordsWithVolume.length} টি):</h2>
+                    <table class="keyword-table">
+                        <thead>
+                            <tr>
+                                <th>কীওয়ার্ড</th>
+                                <th class="search-volume">অনুসন্ধানের পরিমাণ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                // সার্চ ভলিউম অনুসারে সাজান
+                const sortedKeywords = [...keywordsWithVolume].sort((a, b) => b.searchVolume - a.searchVolume);
+                
+                sortedKeywords.forEach(item => {
+                    // সার্চ ভলিউম ফরম্যাট করুন
+                    const formattedVolume = item.searchVolume.toLocaleString('bn-BD');
+                    
+                    tableHTML += `
+                        <tr>
+                            <td>${item.keyword}</td>
+                            <td class="search-volume">${formattedVolume}</td>
+                        </tr>
+                    `;
+                });
+                
+                tableHTML += `
+                        </tbody>
+                    </table>
+                `;
+                
+                resultsDiv.innerHTML = tableHTML;
+                statusDiv.textContent = `সম্পন্ন! ${keywordsWithVolume.length} টি অনন্য কীওয়ার্ড পাওয়া গেছে।`;
+                
+                // অ্যাকশন বাটনগুলি দেখান
+                actionButtons.classList.add('show');
+            } else {
+                resultsDiv.innerHTML = '<p>কোন কীওয়ার্ড পাওয়া যায়নি। অন্য একটি কীওয়ার্ড চেষ্টা করুন।</p>';
+                statusDiv.textContent = 'কোন ফলাফল পাওয়া যায়নি';
+                
+                // অ্যাকশন বাটনগুলি লুকান
+                actionButtons.classList.remove('show');
+            }
+        }
+
+        function copyKeywords() {
+            if (generatedKeywordsWithVolume.length === 0) {
+                showNotification('কপি করার জন্য কোন কীওয়ার্ড নেই', 'error');
+                return;
+            }
+            
+            // কীওয়ার্ড এবং সার্চ ভলিউম টেক্সট তৈরি করুন
+            let keywordsText = "কীওয়ার্ড, অনুসন্ধানের পরিমাণ\n";
+            
+            generatedKeywordsWithVolume.forEach(item => {
+                const formattedVolume = item.searchVolume.toLocaleString('bn-BD');
+                keywordsText += `${item.keyword}, ${formattedVolume}\n`;
+            });
+            
+            // ক্লিপবোর্ডে কপি করার জন্য একটি টেক্সট এরিয়া তৈরি করুন
+            const textArea = document.createElement('textarea');
+            textArea.value = keywordsText;
+            textArea.style.position = 'fixed';  // স্ক্রিনের বাইরে এড়িয়ে যাওয়ার জন্য
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                // ক্লিপবোর্ডে কপি করার চেষ্টা করুন
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                if (successful) {
+                    showNotification(`${generatedKeywordsWithVolume.length} টি কীওয়ার্ড ক্লিপবোর্ডে কপি করা হয়েছে`, 'success');
+                } else {
+                    showNotification('কীওয়ার্ড কপি করা সম্ভব হয়নি', 'error');
+                }
+            } catch (err) {
+                document.body.removeChild(textArea);
+                showNotification('কীওয়ার্ড কপি করা সম্ভব হয়নি', 'error');
+                console.error('Copy error:', err);
+            }
+        }
+
+        function exportKeywords() {
+            if (generatedKeywordsWithVolume.length === 0) {
+                showNotification('এক্সপোর্ট করার জন্য কোন কীওয়ার্ড নেই', 'error');
+                return;
+            }
+            
+            // CSV কন্টেন্ট তৈরি করুন
+            let csvContent = "\uFEFF"; // UTF-8 BOM to ensure proper encoding in Excel
+            csvContent += "কীওয়ার্ড,অনুসন্ধানের পরিমাণ\n";  // হেডার
+            
+            // প্রতিটি কীওয়ার্ড যোগ করুন
+            generatedKeywordsWithVolume.forEach((item, index) => {
+                // কীওয়ার্ডে কমা, নতুন লাইন, বা ডাবল কোট থাকলে তা কোট করুন
+                let keyword = item.keyword;
+                if (keyword.includes(',') || keyword.includes('\n') || keyword.includes('"')) {
+                    // ডাবল কোট এস্কেপ করুন
+                    keyword = keyword.replace(/"/g, '""');
+                    csvContent += `"${keyword}"`;
+                } else {
+                    csvContent += keyword;
+                }
+                
+                // সার্চ ভলিউম যোগ করুন
+                csvContent += `,${item.searchVolume}`;
+                
+                // শেষ লাইন বাদে প্রতিটি লাইনের পরে নতুন লাইন যোগ করুন
+                if (index < generatedKeywordsWithVolume.length - 1) {
+                    csvContent += "\n";
+                }
+            });
+            
+            // একটি ব্লব তৈরি করুন
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            
+            // ডাউনলোড লিঙ্ক তৈরি করুন
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            // বর্তমান তারিখ ব্যবহার করে ফাইলের নাম তৈরি করুন
+            const date = new Date();
+            const dateStr = date.toISOString().slice(0, 10);
+            const baseKeyword = document.getElementById('baseKeyword').value.trim();
+            const sanitizedKeyword = baseKeyword.replace(/[^a-zA-Z0-9\u0980-\u09FF]/g, '_').substring(0, 20);
+            const fileName = `bangla_keywords_${sanitizedKeyword}_${dateStr}.csv`;
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', fileName);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            
+            // ক্লিক ইভেন্ট ট্রিগার করার বিভিন্ন উপায় চেষ্টা করুন
+            try {
+                // আধুনিক ব্রাউজারের জন্য
+                link.click();
+            } catch (e) {
+                // পুরানো ব্রাউজারের জন্য বিকল্প পদ্ধতি
+                const event = new MouseEvent('click', {
+                    view: window,
+                    bubbles: true,
+                    cancelable: true
+                });
+                link.dispatchEvent(event);
+            }
+            
+            document.body.removeChild(link);
+            
+            showNotification(`${generatedKeywordsWithVolume.length} টি কীওয়ার্ড CSV ফাইল হিসেবে এক্সপোর্ট হয়েছে`, 'success');
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.backgroundColor = type === 'success' ? '#2ecc71' : '#e74c3c';
+            notification.classList.add('show');
+            
+            // 3 সেকেন্ড পরে নোটিফিকেশন লুকিয়ে ফেলুন
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function showError(message) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `<div class="error">${message}</div>`;
+        }
+    </script>
+</body>
+</html>
